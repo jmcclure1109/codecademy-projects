@@ -1,0 +1,105 @@
+import codecademylib3
+import pandas as pd
+
+ad_clicks = pd.read_csv('ad_clicks.csv')
+
+# Q1 - Examine first few rows of ad_clicks df
+#---------------------------------------------------------------------------
+print(ad_clicks.head())
+
+# Q2 - How many views (i.e. rows of the table) came from each utm source?
+#----------------------------------------------------------------------------
+print(ad_clicks.groupby('utm_source').user_id.count().reset_index())
+
+# Q3 - Creating a column 'is_click' which is True if ad_click_timestamp is not null and False otherwise.
+#----------------------------------------------------------------------------
+ad_clicks['is_click'] = ad_clicks.ad_click_timestamp.notnull()
+
+print(ad_clicks.head())
+
+# Q4 - What is the percentage of people who clicked on ads for each utm source? Let's first group ut_source and is_click and count the no. of user_ids (i.e. ad views) in each of the those groups.
+#---------------------------------------------------------------------------
+clicks_by_source = ad_clicks.groupby(['utm_source', 'is_click']).user_id.count().reset_index()
+
+# Q5 - Now let's pivot the data for readability
+#---------------------------------------------------------------------------
+clicks_pivot = clicks_by_source.pivot(
+  columns='is_click',
+  index='utm_source',
+  values='user_id'
+).reset_index()
+
+print(clicks_pivot)
+
+# Q6 - Creating a new column in clicks_pivot to see the percentage of clicks for each utm_source
+#---------------------------------------------------------------------------
+clicks_pivot['percent_clicked'] = clicks_pivot[True] / (clicks_pivot[False] + clicks_pivot[True]) * 100
+
+print(clicks_pivot)
+
+# Q7 - For each experiemental group A and B, were the same number of people shown both ads A and B?
+#---------------------------------------------------------------------------
+print(ad_clicks.groupby('experimental_group').user_id.count())
+
+# Q8 - Did a greater percentage of users click on ad A or ad B?
+#---------------------------------------------------------------------------
+click_per_eg = ad_clicks.groupby(['experimental_group', 'is_click']) \
+.user_id \
+.count() \
+.reset_index() \
+.pivot(
+  columns='is_click',
+  index='experimental_group',
+  values='user_id'
+).reset_index()
+
+click_per_eg['percentage_clicked'] = click_per_eg[True] / (click_per_eg[True] + click_per_eg[False]) * 100
+click_per_eg.drop([True, False], axis=1, inplace=True)
+
+print(click_per_eg)
+
+# Q9 - Did percentage of clicks change for each day of the week? Let's first create 2 data frames which only contain the results for groups A and B respectively 
+#---------------------------------------------------------------------------
+a_clicks = ad_clicks[
+   ad_clicks.experimental_group
+   == 'A']
+
+b_clicks = ad_clicks[
+   ad_clicks.experimental_group
+   == 'B']
+
+# Q10 - calculating % of users who clicked on the ad by day
+#------------------------------------------------------------
+# A_clicks
+a_clicks = a_clicks.groupby(['day', 'is_click']).user_id.count().reset_index().pivot(
+      columns='is_click',
+      index='day',
+      values='user_id',
+    ).reset_index()
+
+a_clicks['A_percentage_clicked'] = a_clicks[True] / (a_clicks[True] + a_clicks[False]) * 100
+
+a_clicks.drop([False, True], axis=1, inplace=True)
+
+# -------b_clicks--------
+
+b_clicks = b_clicks.groupby(['day', 'is_click']).user_id.count().reset_index().pivot(
+      columns='is_click',
+      index='day',
+      values='user_id',
+    ).reset_index()
+
+b_clicks['B_percentage_clicked'] = b_clicks[True] / (b_clicks[True] + b_clicks[False]) * 100
+
+b_clicks.drop([False, True], axis=1, inplace=True)
+
+# print(b_clicks)
+
+# Q11 - Merging a_clicks and b_clicks to see which ad group had greater percentage of clicks per day of the week
+#---------------------------------------------------------------------------
+ab_clicks = pd.merge(
+  a_clicks, 
+  b_clicks, 
+  on=['day'])
+print(ab_clicks)
+
