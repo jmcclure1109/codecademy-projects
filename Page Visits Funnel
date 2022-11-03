@@ -1,0 +1,84 @@
+import codecademylib3
+import pandas as pd
+
+visits = pd.read_csv('visits.csv',
+                     parse_dates=[1])
+cart = pd.read_csv('cart.csv',
+                   parse_dates=[1])
+checkout = pd.read_csv('checkout.csv',
+                       parse_dates=[1])
+purchase = pd.read_csv('purchase.csv',
+                       parse_dates=[1])
+
+# Q1 - inspect
+print(visits)
+print(cart)
+print(checkout)
+print(purchase)
+
+# Q2 - combining visits and cart
+visit_cart = pd.merge(
+  visits,
+  cart,
+  how='left'
+)
+
+print(visit_cart)
+
+# Q3 - how long is the merged df?
+  # 2000 rows
+
+# Q4 - how many timestamps are null in cart_time?
+print(visit_cart['cart_time'].isnull().sum())
+  # 1652
+
+# Q5 - What percent of users who visited Cool T-Shirts Inc. ended up not placing a t-shirt in their cart?
+percentage_cart = float(
+  visit_cart['cart_time'].isnull().sum() / \
+  visit_cart['visit_time'].count() \
+  * 100)
+print(percentage_cart)
+# 82.6
+
+# Q6 - left merge for cart and checkout, what percentage of users added t-shirt to cart but did not checkout?
+cart_checkout = pd.merge(
+  cart,
+  checkout,
+  how='left'
+)
+print(float(
+  cart_checkout['checkout_time'].isnull().sum() /\
+  cart_checkout['cart_time'].count()\
+  * 100))
+# 25.3%
+
+# Q7 - merge all steps of the funnel, in order, in a series of left merges
+all_data = visit_cart.merge(checkout, how='left')\
+                     .merge(purchase, how='left')
+
+print(all_data.head(10))
+
+# Q8 - what percentage of users proceeded to checkout but didn't purchase a t-shirt? 
+all_data_checkouts = all_data[all_data['checkout_time'].notnull()]
+
+print(
+  all_data_checkouts['purchase_time'].isnull().sum() /\
+  all_data_checkouts['checkout_time'].count() \
+  * 100
+)
+# 16.9%
+# could also do this by joining the checkout and purchase tables
+
+# Q9 - which step of the funnel is the weakest i.e. has the highest percentage of users not completing it?
+  # visit to cart - 82.6%
+  # could fix this problem by attracting users to the site who are more likely to purchase a t-shirt in the first place - targeting the right people with ads.
+  # Could add limited-time offer discounts on t-shirts
+
+# Q10 - calculate average time from initial visit to final purchase
+
+all_data['visit_to_purchase_time'] = \
+  all_data['purchase_time'] - \
+  all_data['visit_time']
+
+print(all_data['visit_to_purchase_time'].mean())
+# 0 days 00:43:53.360160
